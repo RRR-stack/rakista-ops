@@ -17,7 +17,7 @@ storage:
 
 cloudflare:
   domain: n8n.rakista.com
-  tunnel_id: f704a01e-8d43-4d42-9db7-13a09d76d962  # identifier only
+  tunnel_id: f704a01e-8d43-4d42-9db7-13a09d76d962 # identifier only
 
 n8n:
   version: "1.115.3"
@@ -28,10 +28,10 @@ secrets:
   bitwarden:
     folder: variables
     items:
-      - N8N_ENCRYPTION_KEY       # has value ✅
-      - POSTGRES_PASSWORD        # TODO set value
-      - CLOUDFLARE_API_TOKEN     # optional; TODO set
-      - GITHUB_PAT               # optional; TODO set
+      - N8N_ENCRYPTION_KEY # has value ✅
+      - POSTGRES_PASSWORD # TODO set value
+      - CLOUDFLARE_API_TOKEN # optional; TODO set
+      - GITHUB_PAT # optional; TODO set
 
 monitoring:
   uptime:
