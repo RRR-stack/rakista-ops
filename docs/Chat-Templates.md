@@ -9,9 +9,9 @@ Use these as the **first message** in a new ChatGPT chat. Paste the **Universal 
 PROJECT CONTEXT (read-only)
 - Name: Rakista (infra + content automation)
 - Source of truth: GitHub repo with Runbook + docs + variables.yml
-  • Runbook: <repo>/blob/main/Runbook.md
-  • Variables: <repo>/blob/main/variables.yml
-  • Docs index: <repo>/blob/main/README.md
+  • Runbook: https://github.com/RRR-stack/rakista-ops/blob/main/Runbook.md
+  • Variables: https://github.com/RRR-stack/rakista-ops/blob/main/variables.yml
+  • Docs index: https://github.com/RRR-stack/rakista-ops/blob/main/README.md
 - Infra: GCP (n8n on Docker + Postgres), Cloudflare Access (UI) and Bypass (/webhook*)
 - Health URL: see variables.yml → n8n.health_url
 - Secrets: NEVER in chat. All secrets live in Bitwarden (folder “variables”) and GSM.
@@ -239,8 +239,8 @@ RULES
 
 ### Micro version
 ```
-Turn these requirements into 8 strong prompts (plan, execute, refine, data-aware, safe). 
-Use variables.yml references for constants (e.g., “→ gcp.project_id”). 
+Turn these requirements into 8 strong prompts (plan, execute, refine, data-aware, safe).
+Use variables.yml references for constants (e.g., “→ gcp.project_id”).
 No secrets. Include test + rollback in dev prompts.
 
 Requirements:
@@ -252,9 +252,9 @@ Requirements:
 Name: Execute → Build n8n Gmail triage
 When to use: I’m ready to implement and test the workflow.
 Prompt:
-Design step-by-step instructions to build an n8n workflow that triages unread Gmail daily and sends a Telegram summary. 
-Use credentials by name only (svc-google-gmail-rw, svc-telegram-bot). 
-Reference constants by path (variables.yml → n8n.health_url). 
+Design step-by-step instructions to build an n8n workflow that triages unread Gmail daily and sends a Telegram summary.
+Use credentials by name only (svc-google-gmail-rw, svc-telegram-bot).
+Reference constants by path (variables.yml → n8n.health_url).
 Include: node order, key settings, timeouts/retries, a dry_run toggle, and a verification checklist.
 Knobs: schedule (“daily 07:30 PH”), label/query, dry_run (true/false).
 ```
