@@ -1,0 +1,47 @@
+# Single source of truth for live constants across Rakista infra.
+# Do NOT store secret payloads here. Secrets live in Bitwarden (folder: "variables")
+# and/or GCP Secret Manager (GSM). This file holds names/IDs/URLs only.
+
+project:
+  id: rakista-417013
+
+gcp:
+  region: asia-east1
+  zone: asia-east1-a
+  vm: n8n-vm-01
+  disk: n8n-data
+  snapshot_policy: n8n-daily-0330
+
+storage:
+  backup_bucket: n8n-rakista-bucket
+
+cloudflare:
+  domain: n8n.rakista.com
+  tunnel_id: f704a01e-8d43-4d42-9db7-13a09d76d962  # identifier only
+
+n8n:
+  version: "1.115.3"
+  health_url: https://n8n.rakista.com/webhook/healthz
+
+secrets:
+  encryption_key_name: N8N_ENCRYPTION_KEY
+  bitwarden:
+    folder: variables
+    items:
+      - N8N_ENCRYPTION_KEY       # has value ✅
+      - POSTGRES_PASSWORD        # TODO set value
+      - CLOUDFLARE_API_TOKEN     # optional; TODO set
+      - GITHUB_PAT               # optional; TODO set
+
+monitoring:
+  uptime:
+    frequency: "1m"
+    timeout: "10s"
+    failure_window: "3m"
+  channels:
+    email: harold@rakista.com
+    chat_channel_id: projects/rakista-417013/notificationChannels/15793252715245858234
+
+schedules:
+  cron_db_utc: "18:40"
+  cron_volume_utc: "18:50"
