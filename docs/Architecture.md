@@ -1,5 +1,6 @@
 # Architecture Overview
 
+> References: [Runbook](https://github.com/RRR-stack/rakista-ops/blob/main/Runbook.md) • [variables.yml](https://github.com/RRR-stack/rakista-ops/blob/main/variables.yml) • [README](https://github.com/RRR-stack/rakista-ops/blob/main/README.md)
 > Constants come from `variables.yml` (do not hardcode). Health URL: see `n8n.health_url`.
 
 ```mermaid
