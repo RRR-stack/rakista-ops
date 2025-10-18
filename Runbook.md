@@ -1,10 +1,10 @@
 # Rakista Ops Runbook (vars‑first edition)
 
-> **Single source of truth:** Do **not** hardcode IDs/URLs here. All live constants are in `variables.yml`.  
+> **Single source of truth:** Do **not** hardcode IDs/URLs here. All live constants are in `variables.yml`.
 > When something changes: update `variables.yml`, then add a one‑liner in the change log below.
 
 ## change_summary
-- 2025-10-18: Finalized public repo, moved constants to `variables.yml`, completed n8n upgrade to `variables.yml → n8n.version`, enabled GCP uptime + GSM audit alerts, backups to GCS verified, Cloudflare tunnel note (locally managed).  
+- 2025-10-18: Finalized public repo, moved constants to `variables.yml`, completed n8n upgrade to `variables.yml → n8n.version`, enabled GCP uptime + GSM audit alerts, backups to GCS verified, Cloudflare tunnel note (locally managed).
 - 2025-10-18a: Editorial polish — added “Values at a glance”, explicit Cloudflare config path, explicit public‑repo/no‑secrets line, and DR/restore cross‑reference.
 
 ---
@@ -21,6 +21,9 @@
 - `n8n.version`, `n8n.health_url`
 - `secrets.encryption_key_name`
 - `monitoring.channels.email`, `monitoring.channels.chat`
+- `monitoring.chat_channel_id`        # GCP channel resource ID (for reference)
+- `monitoring.uptime.frequency`, `monitoring.uptime.timeout`,
+- `monitoring.uptime.failure_window`  # Uptime tuning knobs
 - `schedules.cron_db_utc`, `schedules.cron_volume_utc`
 
 ---
@@ -59,8 +62,8 @@ gcloud compute firewall-rules create allow-iap-ssh-n8n \
 ---
 
 # 1) Storage (GCS) — ✅
-- **Bucket**: see `variables.yml → storage.backup_bucket`  
-- **Lifecycle**: 30d→Coldline, 180d→Delete  
+- **Bucket**: see `variables.yml → storage.backup_bucket`
+- **Lifecycle**: 30d→Coldline, 180d→Delete
 **GUI**: Cloud Storage → Buckets → Lifecycle rules.
 
 ---
@@ -89,9 +92,9 @@ gcloud compute instances create $(yq '.gcp.vm' variables.yml) \
 ```
 
 **On the VM**
-- Format & mount **/dev/sda → `/srv`** via **UUID** in `/etc/fstab`  
-- Set Docker `data-root=/srv/docker`; install Docker + Compose  
-- App lives in `/srv/n8n`; n8n binds to `127.0.0.1:5678`  
+- Format & mount **/dev/sda → `/srv`** via **UUID** in `/etc/fstab`
+- Set Docker `data-root=/srv/docker`; install Docker + Compose
+- App lives in `/srv/n8n`; n8n binds to `127.0.0.1:5678`
 - n8n container version: **see `variables.yml → n8n.version`**
 
 **Compose (excerpt)**
@@ -140,7 +143,7 @@ volumes:
 ---
 
 ## 2.4) Snapshots — ✅
-- **Policy**: see `variables.yml → gcp.snapshot_policy` (PH ~03:00, 14d retention)  
+- **Policy**: see `variables.yml → gcp.snapshot_policy` (PH ~03:00, 14d retention)
 - **Attached to**: `variables.yml → gcp.disk`
 
 **CLI**
@@ -160,9 +163,9 @@ gcloud compute disks add-resource-policies $(yq '.gcp.disk' variables.yml) \
 
 # 3) Backups to GCS — ✅ (Option A)
 
-**Destinations**  
-- DB dump → `gs://(variables.yml → storage.backup_bucket)/db/`  
-- n8n volume → `gs://(variables.yml → storage.backup_bucket)/app/`  
+**Destinations**
+- DB dump → `gs://(variables.yml → storage.backup_bucket)/db/`
+- n8n volume → `gs://(variables.yml → storage.backup_bucket)/app/`
 - Staging dir on VM: `/srv/backup`
 
 **Manual run (VM)**
@@ -183,8 +186,8 @@ gsutil cp /srv/backup/n8n-$DATE.sql.gz gs://$(yq '.storage.backup_bucket' variab
 gsutil cp /srv/backup/n8n-data-$DATE.tgz gs://$(yq '.storage.backup_bucket' variables.yml)/app/
 ```
 
-**Cron (UTC)**  
-- DB dump: `variables.yml → schedules.cron_db_utc`  
+**Cron (UTC)**
+- DB dump: `variables.yml → schedules.cron_db_utc`
 - Volume: `variables.yml → schedules.cron_volume_utc`
 
 > **Restore note:** The step‑by‑step restore lives in the **Backup & Restore / DR Guide**. Keep this runbook focused on backup creation; see that guide for restore & verification.
@@ -193,7 +196,7 @@ gsutil cp /srv/backup/n8n-data-$DATE.tgz gs://$(yq '.storage.backup_bucket' vari
 
 ## 3.2) Secret Manager (N8N_ENCRYPTION_KEY) — ✅
 
-- Secret name: `variables.yml → secrets.encryption_key_name`  
+- Secret name: `variables.yml → secrets.encryption_key_name`
 - Payload stored in **Bitwarden (folder: variables)** and **GSM**; not in git.
 
 **Sync GSM → .env (VM)**
@@ -219,9 +222,9 @@ sudo awk -F'"' '/encryptionKey/ {print $4}' /srv/docker/volumes/n8n_n8n_data/_da
 
 # 4) Ingress (Cloudflare Tunnel + Access) — ✅
 
-- **Tunnel** → `variables.yml → cloudflare.domain` → `http://localhost:5678`  
+- **Tunnel** → `variables.yml → cloudflare.domain` → `http://localhost:5678`
 - **Zero Trust Applications**:
-  - App **UI** (domain = `variables.yml → cloudflare.domain`): **Allow** (SSO wall)  
+  - App **UI** (domain = `variables.yml → cloudflare.domain`): **Allow** (SSO wall)
   - App **Webhooks** (path `/webhook*`): **Bypass** (so uptime checks & external triggers can reach)
 - **Important note:** This tunnel is **locally managed**. Config lives at **`/etc/cloudflared/config.yml`** on the VM (the Zero Trust dashboard shows “locally configured,” and cannot edit the tunnel).
 
@@ -239,8 +242,8 @@ curl -I https://$(yq '.cloudflare.domain' variables.yml)/webhook/test | sed -n '
 # 5) Monitoring — ✅
 
 ## 5.1 n8n “health” workflow
-- Create **Webhook** node: **GET** `/healthz`, **Production URL** only.  
-- Add **Respond to Webhook** node: status **200**, header `content-type: text/plain`, body `ok`.  
+- Create **Webhook** node: **GET** `/healthz`, **Production URL** only.
+- Add **Respond to Webhook** node: status **200**, header `content-type: text/plain`, body `ok`.
 - **Activate** the workflow.
 
 **Check**
@@ -250,24 +253,25 @@ curl -i "$(yq '.n8n.health_url' variables.yml)" | sed -n '1,3p'
 ```
 
 ## 5.2 GCP Uptime Check (HTTPS)
-- Hostname: `variables.yml → cloudflare.domain`  
-- Path: `/webhook/healthz`  
-- Frequency **1 minute**, Timeout **10s**, Global regions  
+- Hostname: `variables.yml → cloudflare.domain`
+- Path: `/webhook/healthz`
+- Frequency **1 minute**, Timeout **10s**, Global regions
+- Uptime tuning from `variables.yml → monitoring.uptime.*`
 - Alert policy: **fire after 3m of failures**, notifications to channels in `variables.yml → monitoring.channels.*`.
 
 ---
 
 # 6) Hardening / Ops polish — ✅
 
-- **Diagnostics disabled** (`N8N_DIAGNOSTICS_ENABLED=false`)  
-- **Metrics enabled** (`N8N_METRICS=true`)  
-- **Enforce settings file perms** (`N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true`)  
-- **Task runners** (`N8N_RUNNERS_ENABLED=true`)  
-- **Disable bare Git repos** (`N8N_GIT_NODE_DISABLE_BARE_REPOS=true`)  
-- **Block env in Code nodes** (`N8N_BLOCK_ENV_ACCESS_IN_NODE=true`) — appropriate for our use cases  
-- **GSM Data Access audit logs** (Admin read + Data read) enabled  
-- **GSM alert**: Logs-based alert on `AccessSecretVersion` for secret name = `variables.yml → secrets.encryption_key_name`  
-- **Container & VM updates**: apt + docker package updates applied; restart verified  
+- **Diagnostics disabled** (`N8N_DIAGNOSTICS_ENABLED=false`)
+- **Metrics enabled** (`N8N_METRICS=true`)
+- **Enforce settings file perms** (`N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true`)
+- **Task runners** (`N8N_RUNNERS_ENABLED=true`)
+- **Disable bare Git repos** (`N8N_GIT_NODE_DISABLE_BARE_REPOS=true`)
+- **Block env in Code nodes** (`N8N_BLOCK_ENV_ACCESS_IN_NODE=true`) — appropriate for our use cases
+- **GSM Data Access audit logs** (Admin read + Data read) enabled
+- **GSM alert**: Logs-based alert on `AccessSecretVersion` for secret name = `variables.yml → secrets.encryption_key_name`
+- **Container & VM updates**: apt + docker package updates applied; restart verified
 - **n8n upgraded** to `variables.yml → n8n.version` (migrations completed; health OK)
 
 **Pending (optional improvements)**
@@ -285,23 +289,23 @@ curl -i "$(yq '.n8n.health_url' variables.yml)" | sed -n '1,3p'
   - Secret **names** (not values), Bitwarden folder/items
   - Monitoring channels & schedules
 - **Change management**:
-  1. Update `variables.yml`.  
-  2. Add one line in **`change_summary`** above.  
-  3. Commit via PR (use the PR template checklist).  
+  1. Update `variables.yml`.
+  2. Add one line in **`change_summary`** above.
+  3. Commit via PR (use the PR template checklist).
 
 ---
 
 # GitHub (docs repo)
 
-- Repo name: **rakista-ops** (**public by design**). **No secrets in git;** secret payloads live in **Bitwarden (folder: variables)** and **GSM**.  
-- Branch model: `main` with PRs, linear history (Squash & merge)  
+- Repo name: **rakista-ops** (**public by design**). **No secrets in git;** secret payloads live in **Bitwarden (folder: variables)** and **GSM**.
+- Branch model: `main` with PRs, linear history (Squash & merge)
 - Files:
-  - `variables.yml` → single source of truth (no secrets)  
-  - `Runbook.md` → procedures (references vars)  
-  - `.github/PULL_REQUEST_TEMPLATE.md` → self-check before merge  
+  - `variables.yml` → single source of truth (no secrets)
+  - `Runbook.md` → procedures (references vars)
+  - `.github/PULL_REQUEST_TEMPLATE.md` → self-check before merge
 - Security:
-  - **Secret scanning** enabled; **Push protection** enabled  
-  - **Dependabot alerts/updates** enabled  
+  - **Secret scanning** enabled; **Push protection** enabled
+  - **Dependabot alerts/updates** enabled
 
 ---
 
