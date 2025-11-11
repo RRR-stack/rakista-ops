@@ -6,6 +6,7 @@
 ## change_summary
 - 2025-10-18: Finalized public repo, moved constants to `variables.yml`, completed n8n upgrade to `variables.yml → n8n.version`, enabled GCP uptime + GSM audit alerts, backups to GCS verified, Cloudflare tunnel note (locally managed).
 - 2025-10-18a: Editorial polish — added “Values at a glance”, explicit Cloudflare config path, explicit public‑repo/no‑secrets line, and DR/restore cross‑reference.
+- 2025-11-12: Web tier moved to **PHP-FPM 8.3.27** (CLI aligned), enabled **Redis object cache (local, 512MB, allkeys-lru)**; kept pools `www`, `www-two`, `debug` with `pm=ondemand`, `pm.max_children=50`, added `pm.process_idle_timeout=15s`, OPcache 256/16/50k.
 
 ---
 
@@ -336,3 +337,41 @@ protoPayload.serviceName="secretmanager.googleapis.com"
 protoPayload.methodName="google.cloud.secretmanager.v1.SecretManagerService.AccessSecretVersion"
 protoPayload.resourceName: "secrets/$(variables.yml → secrets.encryption_key_name)"
 ```
+
+---
+
+## Web Tier: PHP 8.3 + Redis Object Cache — Operational Notes (2025-11-12)
+
+**What changed**
+- PHP-FPM upgraded to **8.3.27** via WordOps; **CLI set to php8.3**.
+- Pools preserved: `www`, `www-two`, `debug` → `pm=ondemand`, `pm.max_children=50`.
+- Added `pm.process_idle_timeout = 15s`.
+- OPcache tuned per pool: `opcache.memory_consumption=256`, `opcache.interned_strings_buffer=16`, `opcache.max_accelerated_files=50000`, `opcache.revalidate_freq=2`.
+- Nginx site includes switched: `wpfc-php82.conf` → `wpfc-php83.conf`, `wpcommon-php82.conf` → `wpcommon-php83.conf`.
+- Local **Redis** enabled per VM (127.0.0.1), cap **512MB**, eviction **allkeys-lru**.
+- WordPress plugin **Redis Object Cache** installed and **enabled**.
+
+**Reference commands (WordOps / Ubuntu)**
+- Install PHP 8.3: `sudo wo stack install --php83`
+- Copy 8.2 pools → 8.3; update sockets `php83-fpm.sock`; enable/start: `systemctl enable --now php8.3-fpm`
+- Point Nginx to php83 includes, then: `nginx -t && systemctl reload nginx`
+- Set CLI: `sudo update-alternatives --set php /usr/bin/php8.3`
+- Redis: `sudo wo stack install --redis`
+  - `/etc/redis/redis.conf`: `bind 127.0.0.1 ::1`, `maxmemory 512mb`, `maxmemory-policy allkeys-lru`
+  - Restart: `sudo systemctl restart redis-server`
+- WP plugin:
+  - `wp plugin install redis-cache --activate`
+  - `wp redis enable`
+  *(If permissions: run as web user, e.g. `sudo -u www-data wp ...`)*
+
+**Checks**
+- FPM: `sudo php-fpm8.3 -t` → “test is successful”; reload: `sudo systemctl reload php8.3-fpm`
+- Workers snapshot:
+  `ps --no-headers -o rss -C php-fpm8.3 | awk '{s+=$1;n++} END{printf("php8.3 total=%.1fMB avg=%.1fMB workers=%d\n", s/1024,(n?s/n/1024:0), n)}'`
+- Redis stats:
+  `redis-cli info memory | egrep 'used_memory_human|maxmemory_human'`
+  `redis-cli info stats  | egrep 'keyspace_hits|keyspace_misses'`
+
+**Rollback (fast)**
+- Nginx includes: swap `php83` → `php82`, then `nginx -t && systemctl reload nginx`.
+- Disable WP object cache: `wp redis disable` (or deactivate plugin).

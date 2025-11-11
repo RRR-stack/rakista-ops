@@ -1,6 +1,6 @@
 # On-call Quick Sheet
 
-> Single source of truth for constants: see `variables.yml`.  
+> Single source of truth for constants: see `variables.yml`.
 > No secrets in docs. Secret payloads are in Bitwarden (folder **variables**) and GSM.
 
 ## 0) When the pager fires
@@ -11,9 +11,9 @@
 - **Where alerts go**: `monitoring.channels.email`, `monitoring.channels.chat` (ID: `monitoring.chat_channel_id`)
 
 ## 1) First 60 seconds (triage)
-1. Open **GCP Monitoring → Alerting → Incidents**; read the incident’s **Timeline**.  
-2. Check **Uptime Check result** (it logs the HTTP status/body).  
-3. Confirm **status page** in your head: is main site up? (We only monitor n8n here.)  
+1. Open **GCP Monitoring → Alerting → Incidents**; read the incident’s **Timeline**.
+2. Check **Uptime Check result** (it logs the HTTP status/body).
+3. Confirm **status page** in your head: is main site up? (We only monitor n8n here.)
 4. **Acknowledge** incident to stop noisy duplicates.
 
 ## 2) Fast health checks (CLI)
@@ -43,7 +43,7 @@ gcloud compute ssh "$(yq '.gcp.vm' variables.yml)" --zone="$(yq '.gcp.zone' vari
   ```bash
   gcloud compute ssh "$(yq '.gcp.vm' variables.yml)" --zone="$(yq '.gcp.zone' variables.yml)" --     "sudo systemctl restart cloudflared && systemctl --no-pager status cloudflared"
   ```
-- **Health workflow missing** (404 at /webhook/healthz):  
+- **Health workflow missing** (404 at /webhook/healthz):
   Re-activate the “Healthcheck – Public” workflow in n8n UI; confirm `200 ok`.
 
 ## 4) If n8n is down but VM is fine
@@ -59,18 +59,30 @@ gcloud compute ssh "$(yq '.gcp.vm' variables.yml)" --zone="$(yq '.gcp.zone' vari
    sha256sum /tmp/gsm_key | cut -c1-12
    # Hashes should match
    ```
+   ## 4b) PHP-FPM & Redis quick checks (web)
+
+   - Workers/memory:
+     `ps --no-headers -o rss -C php-fpm8.3 | awk '{s+=$1;n++} END{printf("php8.3 total=%.1fMB avg=%.1fMB workers=%d\n", s/1024,(n?s/n/1024:0), n)}'`
+   - FPM config test:
+     `sudo php-fpm8.3 -t`  → expect “test is successful”
+   - Redis health & cap:
+     `systemctl status redis-server --no-pager | sed -n '1,5p'`
+     `redis-cli info memory | egrep 'used_memory_human|maxmemory_human'`
+     `redis-cli info stats  | egrep 'keyspace_hits|keyspace_misses'`
+   - If needed, disable object cache quickly:
+     `sudo -u www-data wp --path=/var/www/rakista.com/htdocs redis disable`
 
 ## 5) Rollback/Restore pointers (quick)
 - **Snapshots**: disk snapshots via `gcp.snapshot_policy` (Compute → Disks → Snapshots).
-- **Backups** (GCS): DB dumps under `gs://storage.backup_bucket/db/`, volume tars under `.../app/`.  
+- **Backups** (GCS): DB dumps under `gs://storage.backup_bucket/db/`, volume tars under `.../app/`.
 - **Full procedure**: see **Backup & Restore / DR Guide** (includes restore verification).
 
 ## 6) Exit criteria
-- Health URL returns **HTTP 200** (2 consecutive probes).  
-- No critical errors in `docker compose logs n8n`.  
+- Health URL returns **HTTP 200** (2 consecutive probes).
+- No critical errors in `docker compose logs n8n`.
 - Incident **Resolved** in Monitoring.
 
 ## 7) Who to contact / escalation
-- **Owner**: harold@rakista.com  
-- **Channels**: `monitoring.channels.chat`, `monitoring.channels.email`  
+- **Owner**: harold@rakista.com
+- **Channels**: `monitoring.channels.chat`, `monitoring.channels.email`
 - **Vendors**: Cloudflare (tunnel), Google Cloud (Monitoring/Compute/Storage)
