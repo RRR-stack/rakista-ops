@@ -375,3 +375,6 @@ protoPayload.resourceName: "secrets/$(variables.yml → secrets.encryption_key_n
 **Rollback (fast)**
 - Nginx includes: swap `php83` → `php82`, then `nginx -t && systemctl reload nginx`.
 - Disable WP object cache: `wp redis disable` (or deactivate plugin).
+
+---
+- [n8n Upgrade Guide](n8n-Upgrade-Guide.md)
