@@ -7,7 +7,7 @@
 - 2025-10-18: Finalized public repo, moved constants to `variables.yml`, completed n8n upgrade to `variables.yml → n8n.version`, enabled GCP uptime + GSM audit alerts, backups to GCS verified, Cloudflare tunnel note (locally managed).
 - 2025-10-18a: Editorial polish — added “Values at a glance”, explicit Cloudflare config path, explicit public‑repo/no‑secrets line, and DR/restore cross‑reference.
 - 2025-11-12: Web tier moved to **PHP-FPM 8.3.27** (CLI aligned), enabled **Redis object cache (local, 512MB, allkeys-lru)**; kept pools `www`, `www-two`, `debug` with `pm=ondemand`, `pm.max_children=50`, added `pm.process_idle_timeout=15s`, OPcache 256/16/50k.
-
+- 2025-12-05 : Upgraded n8n (n8n.rakista.com) from 1.115.3 → 1.122.5 via Docker image n8nio/n8n:1.122.5.
 ---
 
 # How to use this runbook
