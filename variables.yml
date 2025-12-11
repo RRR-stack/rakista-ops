@@ -20,7 +20,7 @@ cloudflare:
   tunnel_id: "f704a01e-8d43-4d42-9db7-13a09d76d962" # identifier only; config is on the VM
 
 n8n:
-  version: "1.122.5" # container tag to deploy
+  version: "2.0" # container tag to deploy
   health_url: "https://n8n.rakista.com/webhook/healthz"
 
 secrets:

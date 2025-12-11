@@ -7,23 +7,23 @@ Production n8n at **https://n8n.rakista.com** on **GCE VM `n8n-vm-01`**.
 ## 🔎 Quick Upgrade Checklist (TL;DR)
 
 1. **Decide target version** (e.g. `1.122.5`) from n8n release notes.
-2. **Create VM Image** of `n8n-vm-01`  
+2. **Create VM Image** of `n8n-vm-01`
    - Name: `n8n-vm-01-pre-upgrade-YYYYMMDD`
-3. **Update repo**  
-   - `variables.yml → n8n.version = "<new_version>"`  
+3. **Update repo**
+   - `variables.yml → n8n.version = "<new_version>"`
    - Add entry in `Runbook.md` change log.
-4. **SSH to VM**  
+4. **SSH to VM**
    - `gcloud compute ssh n8n-vm-01 --zone=<zone>`
-5. **Run upgrade helper**  
-   - `cd /srv/n8n`  
+5. **Run upgrade helper**
+   - `cd /srv/n8n`
    - `./update-n8n.sh` → enter `<new_version>`
-6. **Verify**  
-   - `docker exec -it n8n-n8n-1 n8n --version`  
-   - `curl 127.0.0.1:5678/rest/settings | grep -i version`  
-   - `curl -i https://n8n.rakista.com/webhook/healthz | head -n 5`  
+6. **Verify**
+   - `docker exec -it n8n-n8n-1 n8n --version`
+   - `curl 127.0.0.1:5678/rest/settings | grep -i version`
+   - `curl -i https://n8n.rakista.com/webhook/healthz | head -n 5`
    - Incognito UI → About n8n → run 1 simple Prod workflow.
-7. **If broken → rollback**  
-   - Either restore VM from **GCE Image**, or  
+7. **If broken → rollback**
+   - Either restore VM from **GCE Image**, or
    - Switch Docker image tag back to previous version and `docker compose up -d`.
 
 ---
